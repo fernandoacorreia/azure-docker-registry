@@ -1,0 +1,35 @@
+# This file sets configuration options used to create the Docker private registry on Azure.
+#
+# Edit this file and set the values as described in README.md.
+
+# The UUID of the subscription in which the VM is to be created.
+# The available subscriptions can be listed with this command: azure account list
+export AZURE_SUBSCRIPTION_ID=""
+
+# The user that will be used for HTTP Basic Authentication when accessing the registry.
+export BASIC_AUTH_USER=""
+
+# The password that will be used for HTTP Basic Authentication when accessing the registry.
+# Make it long.
+export BASIC_AUTH_PASSWORD=""
+
+# The Azure location where the VM and disks will be created.
+# The available locations can be listed with this command: azure vm location list
+export VM_LOCATION="East US"
+
+# The DNS name of the virtual machine to be created (e.g. "contosodocker").
+# This name must be globally unique among all Azure virtual machines (domain cloudapp.net).
+export VM_NAME=""
+
+# The size of the virtual machine to be created.
+# The options may include: extrasmall, small, medium, large, extralarge, a5, a6, a7.
+# The currently available options can be listed with this command: azure help vm create
+export VM_SIZE="small"
+
+# The name of the administrative Linux user to be created on the virtual machine.
+export VM_USER_NAME="dockeradmin"
+
+# The domain name that will be used to access the Docker repository.
+# By default it will be configured to use the virtual machine's DNS name in Azure.
+# You can replace that with a custom domain if you are setting one.
+export DOMAIN="$VM_NAME.cloudapp.net"

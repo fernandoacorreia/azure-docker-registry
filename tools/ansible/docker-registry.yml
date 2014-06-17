@@ -1,0 +1,7 @@
+---
+- hosts: docker-registry
+  remote_user: "{{user}}"
+  sudo: yes
+  gather_facts: false
+  roles:
+    - docker-registry

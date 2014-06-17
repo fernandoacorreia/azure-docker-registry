@@ -1,0 +1,14 @@
+# Docker registry server configuration.
+# The `common' part is automatically included (and possibly overriden) by all other flavors
+common:
+    disable_token_auth: true
+    index_endpoint:
+    loglevel: _env:LOGLEVEL:info
+    privileged_key: _env:PRIVILEGED_KEY
+    search_backend: _env:SEARCH_BACKEND:sqlalchemy
+    sqlalchemy_index_database: sqlite:////tmp/docker-registry-index.db
+    standalone: true
+
+production:
+    storage: file
+    storage_path: _env:STORAGE_PATH

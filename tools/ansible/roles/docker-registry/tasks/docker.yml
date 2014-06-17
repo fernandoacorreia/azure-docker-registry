@@ -1,0 +1,18 @@
+# Installs Docker on an Ubuntu 14.04 host.
+---
+- name: create docker data directory
+  file: path=/mnt/data/docker state=directory
+
+- name: store docker files in data disk
+  file: src=/mnt/data/docker dest=/var/lib/docker state=link
+
+- name: add repository key
+  command: creates=/etc/apt/sources.list.d/docker.list apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9
+
+- name: copy repository source file
+  copy: src=docker.list dest=/etc/apt/sources.list.d/docker.list
+
+- name: install docker package
+  apt: name=lxc-docker update_cache=yes state=present
+
+# TODO setup automatic initialization

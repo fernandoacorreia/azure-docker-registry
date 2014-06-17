@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# nginx runit script.
+#
+set -o nounset
+
+function fail {
+  echo $1 >&2
+  exit 1
+}
+
+trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
+
+[ ! -z "$REGISTRY_PORT_5000_TCP_ADDR" ] || fail "Registry linked server address is not set"
+[ ! -z "$REGISTRY_PORT_5000_TCP_PORT" ] || fail "Registry linked server port is not set"
+
+echo "upstream docker-registry {" > /etc/nginx/conf.d/registry.conf
+echo "  server $REGISTRY_PORT_5000_TCP_ADDR:$REGISTRY_PORT_5000_TCP_PORT;" >> /etc/nginx/conf.d/registry.conf
+echo "}" >> /etc/nginx/conf.d/registry.conf
+
+exec /usr/sbin/nginx

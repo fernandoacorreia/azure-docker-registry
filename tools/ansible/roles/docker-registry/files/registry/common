@@ -1,0 +1,9 @@
+#!/bin/bash
+#
+# Common configuration for the Docker registry bash scripts.
+#
+set -o nounset
+
+STORAGE_VOLUME="/vol/docker-registry"
+DATA_CONTAINER_NAME="docker_registry_data"
+REGISTRY_CONTAINER_NAME="docker_registry"

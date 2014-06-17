@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# Starts the nginx container.
+#
+set -o nounset
+
+function fail {
+  echo $1 >&2
+  exit 1
+}
+
+trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
+
+DIR=`dirname "$(readlink -f "$0")"`
+source "$DIR/common"
+
+[ "$(id -u)" -eq "0" ] || fail "This script must be run as root"
+
+docker start "$NGINX_CONTAINER_NAME"
+
+echo "nginx started in container $NGINX_CONTAINER_NAME"

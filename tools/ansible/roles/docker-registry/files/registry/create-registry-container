@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# Creates the Docker registry server container.
+#
+set -o nounset
+
+function fail {
+  echo $1 >&2
+  exit 1
+}
+
+trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
+
+DIR=`dirname "$(readlink -f "$0")"`
+source "$DIR/common"
+
+[ "$(id -u)" -eq "0" ] || fail "This script must be run as root"
+
+if docker inspect $REGISTRY_CONTAINER_NAME &> /dev/null; then
+  echo "registry container already exists"
+else
+  echo "Creating registry container $REGISTRY_CONTAINER_NAME"
+  HOST_CONFIG_FILE="$DIR/config.yml"
+  GUEST_CONFIG_FILE="/mnt/config/config.yml"
+  docker run \
+    -d \
+    --volumes-from "$DATA_CONTAINER_NAME" \
+    -v "$HOST_CONFIG_FILE":"$GUEST_CONFIG_FILE" \
+    -p 5000:5000 \
+    --name "$REGISTRY_CONTAINER_NAME" \
+    -e SETTINGS_FLAVOR=production \
+    -e DOCKER_REGISTRY_CONFIG="$GUEST_CONFIG_FILE" \
+    -e STORAGE_PATH="$STORAGE_VOLUME" \
+    registry
+fi

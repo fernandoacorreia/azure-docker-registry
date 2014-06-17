@@ -1,0 +1,177 @@
+#!/bin/bash
+#
+# Creates the Docker registry server on Azure.
+#
+set -o nounset
+
+function fail {
+  echo $1 >&2
+  exit 1
+}
+
+trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
+
+source "$HOME/config"
+
+function retry {
+  local n=1
+  local max=5
+  local delay=5
+  while true; do
+    "$@" && break || {
+      if [[ $n -lt $max ]]; then
+        ((n++))
+        echo "Command failed. Attempt $n/$max:"
+        sleep $delay;
+      else
+        fail "The command '$cmd' failed after $n attempts"
+      fi
+    }
+  done
+}
+
+function configure {
+  echo ""
+  echo "Validating and processing configuration"
+
+  [ ! -z "$AZURE_SUBSCRIPTION_ID" ] || fail "Configuration option is not set: AZURE_SUBSCRIPTION_ID"
+  [ ! -z "$VM_LOCATION" ] || fail "Configuration option is not set: VM_LOCATION"
+  [ ! -z "$VM_NAME" ] || fail "Configuration option is not set: VM_NAME"
+  [ ! -z "$VM_SIZE" ] || fail "Configuration option is not set: VM_SIZE"
+  [ ! -z "$VM_USER_NAME" ] || fail "Configuration option is not set: VM_USER_NAME"
+
+  AFFINITY_GROUP_NAME="${VM_NAME}ag"
+  STORAGE_ACCOUNT_NAME="${VM_NAME}st"
+  BASE_KEY_DIR="$HOME/.ssh/$VM_NAME-keys"
+  BASE_KEY_NAME="$BASE_KEY_DIR/$VM_NAME"
+  VM_PEM_FILE="$BASE_KEY_NAME.pem"
+  TMP_KEY_DIR="/mnt/tmp/$VM_NAME-keys"
+  VM_ADDRESS="$VM_NAME.cloudapp.net"
+}
+
+function create_keys {
+  echo ""
+  echo "Creating ssh keys for VM $VM_NAME"
+  echo "Enter key properties when prompted"
+  echo ""
+  mkdir -p "$BASE_KEY_DIR"
+  ssh-keygen -t rsa -b 2048 -f "$BASE_KEY_NAME.key" -N ""
+  openssl req -x509 -days 10000 -new -key "$BASE_KEY_NAME.key" -out "$VM_PEM_FILE"
+  chmod 600 $BASE_KEY_NAME.*
+}
+
+function ensure_keys {
+  [ -f "$VM_PEM_FILE" ] || create_keys
+}
+
+function set_subscription {
+  echo ""
+  echo "Setting current subscription to $AZURE_SUBSCRIPTION_ID"
+  retry azure account set "$AZURE_SUBSCRIPTION_ID"
+  # Double-check that the subscription was set, to avoid the risk of running on another subscription.
+  azure account list | grep '  true' | grep $AZURE_SUBSCRIPTION_ID || fail "The current subscription was not set."
+}
+
+function create_affinity_group {
+  echo ""
+  echo "Creating affinity group $AFFINITY_GROUP_NAME"
+  retry azure account affinity-group create "$AFFINITY_GROUP_NAME" \
+    --subscription "$AZURE_SUBSCRIPTION_ID" \
+    --label "$AFFINITY_GROUP_NAME" \
+    --location "$VM_LOCATION" \
+    --description "Affinity group for Docker registry server ${VM_NAME}"
+}
+
+function ensure_affinity_group {
+  azure account affinity-group show "$AFFINITY_GROUP_NAME" &> /dev/null || create_affinity_group
+}
+
+function create_storage_account {
+  echo ""
+  echo "Creating storage account $STORAGE_ACCOUNT_NAME"
+  retry azure storage account create "$STORAGE_ACCOUNT_NAME" \
+    --subscription "$AZURE_SUBSCRIPTION_ID" \
+    --description "VHD storage for Docker registry server ${VM_NAME}" \
+    --affinity-group "$AFFINITY_GROUP_NAME" \
+    --geoReplication
+}
+
+function ensure_storage_account {
+  azure storage account show "$STORAGE_ACCOUNT_NAME" &> /dev/null || create_storage_account
+}
+
+function get_latest_image {
+  LATEST_IMAGE_NAME="`azure vm image list | grep $base_image_id | sort | tail -1 | cut -c 10-120`"
+}
+
+function create_vm {
+  echo ""
+  echo "Creating virtual machine $VM_NAME"
+  local base_image_id="Ubuntu_DAILY_BUILD-trusty-14_04"
+  retry get_latest_image
+  retry azure vm create "$VM_NAME" $LATEST_IMAGE_NAME "$VM_USER_NAME" \
+    --subscription "$AZURE_SUBSCRIPTION_ID" \
+    --vm-name "$VM_NAME" \
+    --vm-size "$VM_SIZE" \
+    --ssh-cert "$VM_PEM_FILE" \
+    --ssh \
+    --no-ssh-password \
+    --affinity-group "$AFFINITY_GROUP_NAME" \
+    --blob-url "http://${STORAGE_ACCOUNT_NAME}.blob.core.windows.net/vhds/${VM_NAME}.vhd"
+}
+
+function create_vm_endpoints {
+  echo ""
+  echo "Creating VM endpoints"
+  retry azure vm endpoint create "$VM_NAME" 80 \
+    --subscription "$AZURE_SUBSCRIPTION_ID" \
+    --endpoint-name "HTTP"
+  retry azure vm endpoint create "$VM_NAME" 443 \
+    --subscription "$AZURE_SUBSCRIPTION_ID" \
+    --endpoint-name "HTTPS"
+}
+
+function add_to_ssh_config {
+  echo "" >> ~/.ssh/config
+  echo "host $VM_ADDRESS" >> ~/.ssh/config
+  echo "  user $VM_USER_NAME" >> ~/.ssh/config
+  echo "  PreferredAuthentications publickey,gssapi-with-mic,hostbased,keyboard-interactive,password" >> ~/.ssh/config
+  echo "  IdentityFile $BASE_KEY_NAME.key" >> ~/.ssh/config
+  echo "  IdentitiesOnly yes" >> ~/.ssh/config
+}
+
+function create_data_disk {
+  echo ""
+  echo "Creating data disk ${VM_NAME}data"
+  local data_disk_url="https://${STORAGE_ACCOUNT_NAME}.blob.core.windows.net/vhds/${VM_NAME}data.vhd"
+  retry azure vm disk attach-new "$VM_NAME" 999 "$data_disk_url" \
+    --subscription "$AZURE_SUBSCRIPTION_ID"
+}
+
+function display_keys_message {
+  mkdir -p "$TMP_KEY_DIR"
+  cp $BASE_KEY_DIR/* "$TMP_KEY_DIR/"
+  echo ""
+  echo "The following key files were created in the work environment:"
+  ls -la $BASE_KEY_DIR/*
+  echo ""
+  echo "These keys contain your credentials to the Docker registry server. Do not lose them and do not leak them."
+  echo "You will find a copy of these files in the /tmp/$VM_NAME-keys directory in your host."
+  echo "Move them out of this temporary location into your host's .ssh directory and backup them."
+  echo "For instance, use this command on your host (not in this work environment):"
+  echo "$ ME=\`whoami\` && sudo chown -R \$ME: /tmp/$VM_NAME-keys/ && mv /tmp/$VM_NAME-keys/* ~/.ssh/"
+}
+
+configure
+ensure_keys
+set_subscription
+ensure_affinity_group
+ensure_storage_account
+create_vm
+create_vm_endpoints
+add_to_ssh_config
+create_data_disk
+display_keys_message
+
+echo ""
+echo "Finished"

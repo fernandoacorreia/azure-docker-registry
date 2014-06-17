@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# Runs the work environment in a container.
+#
+set -o nounset
+
+function fail {
+  echo $1 >&2
+  exit 1
+}
+
+trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
+
+WORKENV="azure-docker-registry-work-environment"
+
+if docker inspect $WORKENV &> /dev/null; then
+  echo "Running container $WORKENV"
+  STARTED=`docker start "$WORKENV"` && docker attach "$STARTED"
+else
+  echo "Creating container $WORKENV"
+  docker run --name="$WORKENV" -v `pwd`/tools:/mnt/tools -v /tmp:/mnt/tmp -t -i azure-docker-registry-workenv /sbin/my_init -- bash -l
+fi

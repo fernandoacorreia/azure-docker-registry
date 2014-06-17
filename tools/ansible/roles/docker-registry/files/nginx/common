@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Common configuration for the nginx container bash scripts.
+#
+set -o nounset
+
+NGINX_CONTAINER_NAME="docker_registry_nginx"
+REGISTRY_CONTAINER_NAME="docker_registry"

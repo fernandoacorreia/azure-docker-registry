@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# Connects to the nginx container via ssh.
+#
+set -o nounset
+
+function fail {
+  echo $1 >&2
+  exit 1
+}
+
+trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
+
+DIR=`dirname "$(readlink -f "$0")"`
+source "$DIR/common"
+
+[ "$(id -u)" -eq "0" ] || fail "This script must be run as root"
+
+if docker inspect $NGINX_CONTAINER_NAME &> /dev/null; then
+  CONTAINER_IP=`docker inspect -f "{{ .NetworkSettings.IPAddress }}" "$NGINX_CONTAINER_NAME"`
+  [ ! -z "$CONTAINER_IP" ] || fail "Container $NGINX_CONTAINER_NAME is not started."
+  ssh -i $HOME/.ssh/nginx-container "$CONTAINER_IP"
+else
+  fail "Container $NGINX_CONTAINER_NAME was not found."
+fi

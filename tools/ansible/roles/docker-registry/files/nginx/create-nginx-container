@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# Creates the nginx container.
+#
+set -o nounset
+
+function fail {
+  echo $1 >&2
+  exit 1
+}
+
+trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
+
+DIR=`dirname "$(readlink -f "$0")"`
+source "$DIR/common"
+
+[ "$(id -u)" -eq "0" ] || fail "This script must be run as root"
+
+if docker inspect $NGINX_CONTAINER_NAME &> /dev/null; then
+  echo "nginx container already exists"
+else
+  echo "Creating nginx container $NGINX_CONTAINER_NAME"
+  docker run \
+    -d \
+    --link $REGISTRY_CONTAINER_NAME:registry \
+    -p 80:80 \
+    -p 443:443 \
+    --name "$NGINX_CONTAINER_NAME" \
+    docker_registry_nginx_image
+fi

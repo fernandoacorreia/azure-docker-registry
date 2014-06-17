@@ -1,0 +1,10 @@
+# Installs and configures the Docker registry containers.
+---
+- name: copy tools and configuration
+  copy: src=registry dest=/opt/
+
+- name: create data container
+  shell: /opt/registry/create-data-container
+
+- name: create registry container
+  shell: /opt/registry/create-registry-container

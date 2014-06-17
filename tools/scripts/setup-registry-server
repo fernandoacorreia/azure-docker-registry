@@ -1,0 +1,66 @@
+#!/bin/bash
+#
+# Sets up the Docker registry server on Azure.
+#
+set -o nounset
+
+function fail {
+  echo $1 >&2
+  exit 1
+}
+
+trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
+
+source "$HOME/config"
+
+function configure {
+  echo ""
+  echo "Validating and processing configuration"
+
+  [ ! -z "$BASIC_AUTH_USER" ] || fail "Configuration option is not set: BASIC_AUTH_USER"
+  [ ! -z "$BASIC_AUTH_PASSWORD" ] || fail "Configuration option is not set: BASIC_AUTH_PASSWORD"
+  [ ! -z "$DOMAIN" ] || fail "Configuration option is not set: DOMAIN"
+  [ ! -z "$VM_NAME" ] || fail "Configuration option is not set: VM_NAME"
+  [ ! -z "$VM_USER_NAME" ] || fail "Configuration option is not set: VM_USER_NAME"
+
+  INVENTORY_FILE="$HOME/inventory"
+  VM_ADDRESS="$VM_NAME.cloudapp.net"
+  PRIVATE_KEY="$HOME/.ssh/$VM_NAME-keys/$VM_NAME.key"
+
+  echo "[docker-registry]" > "$INVENTORY_FILE"
+  echo "$VM_ADDRESS" >> "$INVENTORY_FILE"
+
+  [ -f /mnt/tmp/docker-registry/ssl.crt ] || fail "File not found in host: /tmp/docker-registry/ssl.crt"
+  [ -f /mnt/tmp/docker-registry/ssl.key ] || fail "File not found in host: /tmp/docker-registry/ssl.key"
+}
+
+function check_vm_state {
+  azure vm list | grep " $VM_NAME.cloudapp.net" | grep ReadyRole > /dev/null || fail "The $VM_NAME VM is not ready. It may still be starting up. You can check the status with this command: azure vm list"
+}
+
+function create_password_file {
+  htpasswd -bc /tmp/docker-registry.htpasswd $BASIC_AUTH_USER $BASIC_AUTH_PASSWORD
+}
+
+function run_playbook {
+  cd /mnt/tools/ansible
+  ansible-playbook \
+    --inventory-file="$INVENTORY_FILE" \
+    --extra-vars="basic_auth_user=$BASIC_AUTH_USER basic_auth_password=$BASIC_AUTH_PASSWORD domain=$DOMAIN user=$VM_USER_NAME" \
+    docker-registry.yml
+}
+
+function delete_secrets {
+  rm /tmp/docker-registry.htpasswd
+  rm /mnt/tmp/docker-registry/ssl.crt
+  rm /mnt/tmp/docker-registry/ssl.key
+}
+
+configure
+check_vm_state
+create_password_file
+run_playbook
+delete_secrets
+
+echo ""
+echo "Finished"

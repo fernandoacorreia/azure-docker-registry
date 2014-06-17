@@ -1,0 +1,6 @@
+---
+- include: packages.yml
+- include: data-disk.yml
+- include: docker.yml
+- include: registry.yml
+- include: nginx.yml

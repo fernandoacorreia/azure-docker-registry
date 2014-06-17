@@ -1,0 +1,37 @@
+# Prepares and mounts a data disk if one is present.
+---
+- name: check for data disk device
+  stat: path=/dev/sdc get_md5=no
+  register: data_disk_device_check
+
+- name: check for data disk filesystem
+  stat: path=/dev/sdc1 get_md5=no
+  register: data_disk_filesystem_check
+  when: data_disk_device_check.stat.exists
+
+- name: create label on data disk
+  command: parted --script /dev/sdc mklabel msdos
+  when: data_disk_device_check.stat.exists and not data_disk_filesystem_check.stat.exists
+
+- name: create partition on data disk
+  command: parted --script -- /dev/sdc mkpart primary ext4 0 -1
+  when: data_disk_device_check.stat.exists and not data_disk_filesystem_check.stat.exists
+
+- name: create filesystem on data disk
+  command: mkfs.ext4 /dev/sdc1 -E lazy_itable_init=1 -T largefile
+  when: data_disk_device_check.stat.exists and not data_disk_filesystem_check.stat.exists
+
+- name: check for data disk filesystem
+  stat: path=/dev/sdc1 get_md5=no
+  register: data_disk_filesystem_check
+  when: data_disk_device_check.stat.exists
+
+- name: retrieve data disk UUID
+  shell: blkid /dev/sdc1 -s UUID -o export
+  register: data_disk_uuid
+  changed_when: false
+  when: data_disk_device_check.stat.exists and data_disk_filesystem_check.stat.exists
+
+- name: mount data disk
+  mount: src="{{data_disk_uuid.stdout}}" name=/mnt/data fstype=ext4 opts=defaults dump=1 passno=2 state=mounted
+  when: data_disk_device_check.stat.exists and data_disk_filesystem_check.stat.exists

@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# Creates a data container for the Docker registry server.
+#
+set -o nounset
+
+function fail {
+  echo $1 >&2
+  exit 1
+}
+
+trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
+
+DIR=`dirname "$(readlink -f "$0")"`
+source "$DIR/common"
+
+[ "$(id -u)" -eq "0" ] || fail "This script must be run as root"
+
+if docker inspect $DATA_CONTAINER_NAME &> /dev/null; then
+  echo "data container already exists"
+else
+  echo "Creating data container $DATA_CONTAINER_NAME"
+  docker run -v "$STORAGE_VOLUME" --name "$DATA_CONTAINER_NAME" busybox true
+fi
