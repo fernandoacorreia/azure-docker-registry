@@ -23,7 +23,7 @@ The repository will be accessible exclusively via HTTPS and protected via HTTP B
 
 You can aquire a certificate with a provider of your choice, request a free one at [StartSSL](http://www.startssl.com/), or create a self-signed certificate. This last option may have some issues, unless you configure the operating system of your client computer to trust the self-signed certificate. Since this project is targeted at production-quality deployments, it will assume that there is a valid SSL certificate for the domain chosen for the registry server.
 
-Either way, save a copy of your certificate and its respective unencrypted key to these exact locations:
+Either way, save a copy of your certificate (concatenated with the proper CA bundle) and its respective unencrypted key to these exact locations:
 
 * Certificate: `/tmp/docker-registry/ssl.crt`
 * Key: `/tmp/docker-registry/ssl.key`
@@ -148,16 +148,58 @@ To start the setup process execute this command:
 # /mnt/tools/scripts/setup-registry-server
 ```
 
-When this process finishes, the certificate and key files that were copied to `/tmp/docker-registry` in the host are deleted.
+This may take about half an hour. When it finishes successfully, it should output a message like this:
 
-At this point, your Docker registry should be available on the domain that you specified in the configuration step.
+```
+PLAY RECAP ********************************************************************
+vmname.cloudapp.net : ok=31   changed=27   unreachable=0    failed=0
+```
 
-### Step 7: Administration
+### Step 7: Verification and cleanup
+
+Exit the work environment by typing `exit` at the prompt, and execute the following operations on your host:
+
+* Check that the new Docker registry is working in the domain that you specified by opening its URL in a browser and entering the authentication credentials that you specified in the configuration. It should display a message like this:
+
+```
+"docker-registry server (production) (v0.7.2)"
+```
+
+* Check that you can work with the registry server:
+
+```
+$ docker login https://domain.example.com
+$ docker pull busybox
+$ docker tag busybox domain.example.com:443/busybox
+$ docker push domain.example.com:443/busybox
+```
+
+* Check that you can access the registry virtual machine via ssh with the key that you moved to the `~/.ssh` directory in your host:
+
+```
+$ ssh -i ~/.ssh/vmname.key vmuser@vmname.cloudapp.net
+```
+
+If you get the error "Agent admitted failure to sign using the key" try using `ssh-add` to authorize the key.
+
+* Ensure that the certificate and key files that you copied to `/tmp/docker-registry` in the host have been deleted:
+
+```
+# ls /tmp/docker-registry
+```
+
+* Delete the temporary work environment container from your host, so that the keys and secrets that were stored in it are not kept around:
+
+```
+$ docker rm azure-docker-registry-work-environment
+```
+
+### Step 8: Administration
 
 To manage the registry host, connect to it via ssh, using the private key that was generated during the deployment process:
 
 ```
-# ssh -i ~/.ssh/vmname.key vmuser@vmname.cloudapp.net
+$ ssh -i ~/.ssh/vmname.key vmuser@vmname.cloudapp.net
 ```
 
 You can use regular Ubuntu and Docker administrative commands. Additionally, some scripts are provided as shortcuts:
@@ -167,6 +209,16 @@ You can use regular Ubuntu and Docker administrative commands. Additionally, som
 * `sudo /opt/nginx/start`: Starts the nginx container.
 * `sudo /opt/nginx/stop`: Stops the nginx container.
 * `sudo /opt/nginx/ssh`: Connects to the nginx container via ssh.
+
+For instance, to view nginx error logs:
+
+```
+$ ssh -i ~/.ssh/vmname.key vmuser@vmname.cloudapp.net
+$ sudo /opt/nginx/ssh
+# tail /var/log/nginx/error.log
+```
+
+Since the deployment is done with independent containers, you can upgrade the registry server by replacing the `docker_registry` container with a new image, without losing the data stored in a volume in the `docker_registry_data` container, and without affecting nginx configurations stored in the `docker_registry_nginx` container. See the script at `/opt/registry/create-registry-container` for an example of how to recreate the container. As usual, be sure to backup the data before maintenance.
 
 The registry data is stored in the `/vol/docker-registry` volume of the `docker_registry_data` container.
 
