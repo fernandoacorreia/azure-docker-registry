@@ -220,7 +220,7 @@ $ sudo /opt/nginx/ssh
 # tail /var/log/nginx/error.log
 ```
 
-Since the deployment is done with independent containers, you can upgrade the registry server by replacing the `docker_registry` container with a new image, without losing the data stored in a volume in the `docker_registry_data` container, and without affecting nginx configurations stored in the `docker_registry_nginx` container. See the script at `/opt/registry/create-registry-container` for an example of how to recreate the container. As usual, be sure to backup the data before maintenance.
+Since the deployment is based on independent containers, you can upgrade the registry server by replacing the `docker_registry` container with a new image, without losing the data stored in a volume in the `docker_registry_data` container, and without affecting nginx configurations stored in the `docker_registry_nginx` container. See the script at `/opt/registry/create-registry-container` for an example of how to recreate the container. As usual, be sure to backup the data before maintenance.
 
 The registry data is stored in the `/vol/docker-registry` volume of the `docker_registry_data` container.
 
