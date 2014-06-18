@@ -14,5 +14,3 @@
 
 - name: install docker package
   apt: name=lxc-docker update_cache=yes state=present
-
-# TODO setup automatic initialization
