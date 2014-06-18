@@ -170,8 +170,10 @@ Exit the work environment by typing `exit` at the prompt, and execute the follow
 ```
 $ docker login https://domain.example.com
 $ docker pull busybox
-$ docker tag busybox domain.example.com:443/busybox
-$ docker push domain.example.com:443/busybox
+$ docker tag busybox domain.example.com/busybox
+$ docker push domain.example.com/busybox
+$ docker rmi domain.example.com/busybox
+$ docker pull domain.example.com/busybox
 ```
 
 * Check that you can access the registry virtual machine via ssh with the key that you moved to the `~/.ssh` directory in your host:
