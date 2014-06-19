@@ -1,23 +1,20 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Runs the work environment in a container.
 #
-set -o nounset
-
-function fail {
+fail () {
   echo $1 >&2
   exit 1
 }
 
-trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
-
-docker &> /dev/null || fail "Docker must be installed to use this script."
+docker version > /dev/null 2> /dev/null || fail "Docker must be installed to use this script."
 
 WORKENV="azure-docker-registry-work-environment"
 
-if docker inspect $WORKENV &> /dev/null; then
+docker inspect "$WORKENV" > /dev/null 2> /dev/null
+if [ $? -eq 0 ]; then
   echo "Running container $WORKENV"
-  STARTED=`docker start "$WORKENV"` && docker attach "$STARTED"
+  docker start -ai "$WORKENV"
 else
   echo "Creating container $WORKENV"
   docker run --name="$WORKENV" -v `pwd`/tools:/mnt/tools -v /tmp:/mnt/tmp -t -i azure-docker-registry-workenv /sbin/my_init -- bash -l

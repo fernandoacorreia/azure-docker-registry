@@ -13,11 +13,15 @@ THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. SEE THE LICENSE
 * Locally and geographically redundant storage
 * Separation of data, application and web server in individual containers
 
-## Instructions
+## Requirements
 
 Docker has to be installed in the host.
 
-These scripts and instructions have been tested on Linux Mint 16. They should work on Ubuntu distributions. If you're running Windows, OS X, or other OS they may require adjustments. Alternatively, you could run them inside a VirtualBox VM running Ubuntu Server, inside a [Docker-compatible Vagrant box](https://github.com/phusion/open-vagrant-boxes) or under Cygwin.
+The bootstrap scripts assume a UNIX-like environment. These scripts and instructions have been tested on Linux Mint 16 and on Windows 8.1 running [Boot2docker](http://boot2docker.io/).
+
+Another alternative would be to run inside a virtual machine, for instance a [Docker-compatible Vagrant box](https://github.com/phusion/open-vagrant-boxes).
+
+## Instructions
 
 ### Step 1: Certificates
 

@@ -1,16 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Builds the work environment image.
 #
-set -o nounset
-
-function fail {
+fail () {
   echo $1 >&2
   exit 1
 }
 
-trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
+docker version > /dev/null 2> /dev/null || fail "Docker must be installed to use this script."
 
-docker &> /dev/null || fail "Docker must be installed to use this script."
-
-docker build --rm --tag="azure-docker-registry-workenv" workenv
+docker build --rm --tag="azure-docker-registry-workenv" workenv || fail "Error building work environment."
