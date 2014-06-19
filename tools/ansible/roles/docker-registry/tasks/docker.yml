@@ -1,7 +1,7 @@
 # Installs Docker on an Ubuntu 14.04 host.
 ---
 - name: create docker data directory
-  file: path=/mnt/data/docker state=directory
+  file: path=/mnt/data/docker owner=root group=root state=directory mode=0700
 
 - name: store docker files in data disk
   file: src=/mnt/data/docker dest=/var/lib/docker state=link
