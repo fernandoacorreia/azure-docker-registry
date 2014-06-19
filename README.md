@@ -15,7 +15,9 @@ THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. SEE THE LICENSE
 
 ## Instructions
 
-These scripts and instructions have been tested on Linux Mint 16. They should work on Ubuntu distributions. If you're running Windows, OS X, or other OS they may require adjustments. Alternatively, you could run them inside a VirtualBox VM running Ubuntu Server, or under Cygwin.
+Docker has to be installed in the host.
+
+These scripts and instructions have been tested on Linux Mint 16. They should work on Ubuntu distributions. If you're running Windows, OS X, or other OS they may require adjustments. Alternatively, you could run them inside a VirtualBox VM running Ubuntu Server, inside a [Docker-compatible Vagrant box](https://github.com/phusion/open-vagrant-boxes) or under Cygwin.
 
 ### Step 1: Certificates
 
@@ -148,7 +150,7 @@ To start the setup process execute this command:
 # /mnt/tools/scripts/setup-registry-server
 ```
 
-This may take about half an hour. When it finishes successfully, it should output a message like this:
+This may take about 15 minutes. When it finishes successfully, it should output a message like this:
 
 ```
 PLAY RECAP ********************************************************************

@@ -11,4 +11,6 @@ function fail {
 
 trap 'fail "The execution was aborted because a command exited with an error status code."' ERR
 
+docker &> /dev/null || fail "Docker must be installed to use this script."
+
 docker build --rm --tag="azure-docker-registry-workenv" workenv
