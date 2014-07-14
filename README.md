@@ -27,7 +27,7 @@ Another alternative would be to run inside a virtual machine, for instance a [Do
 
 The repository will be accessible exclusively via HTTPS and protected via HTTP Basic Authentication. This requires a SSL certificate.
 
-You can aquire a certificate with a provider of your choice, request a free one at [StartSSL](http://www.startssl.com/), or create a self-signed certificate. This last option may have some issues, unless you configure the operating system of your client computer to trust the self-signed certificate. Since this project is targeted at production-quality deployments, it will assume that there is a valid SSL certificate for the domain chosen for the registry server.
+You can acquire a certificate with a provider of your choice, request a free one at [StartSSL](http://www.startssl.com/), or create a self-signed certificate. This last option may have some issues, unless you configure the operating system of your client computer to trust the self-signed certificate. Since this project is targeted at production-quality deployments, it will assume that there is a valid SSL certificate for the domain chosen for the registry server.
 
 Either way, save a copy of your certificate (concatenated with the proper CA bundle) and its respective unencrypted key to these exact locations:
 
